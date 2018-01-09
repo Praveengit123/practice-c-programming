@@ -1,3 +1,5 @@
+MAKE me rich
+
 #include <stdio.h>
 #include <stdlib.h>
 
