@@ -1,0 +1,493 @@
+
+##############################################################################
+# OSPF project
+##############################################################################
+
+#########################################################################################################################
+# Route, Path, NextHop Table, LSA vector, threads, memory                                                               #                         
+#                                                                                                                       #
+# Usage of APIs -                                                                                                       #
+#       - cmd : show_rt_network $top                                                                                    #
+#               For Dumpting all the valid data for all routes including selected, paths, news                          #
+#               ($top = pointer for top)                                                                                #
+#                                                                                                                       #
+#       - cmd : printPath $path                                                                                         #   
+#               For dumping whats there inside the path data structure - nexthops & LSAs                                #
+#               ($path = pointer for ospf_path)                                                                         #
+#                                                                                                                       #
+#       - cmd : printRoute $route                                                                                       #
+#               For dumping all in the route - selected path, paths, news                                               #
+#                                                                                                                       #
+#       - cmd : print_ip value                                                                                          #
+#               For getting IP in readable format. Specify directly the value of the prefix to be translated            #
+#                                                                                                                       #
+#       - cmd : printLsa $lsa                                                                                           #
+#               For getting LSID & Advt_router of LSA. $lsa = Pointer of ospf_lsa                                       #
+#                                                                                                                       #
+#       - cmd : printVectorLSA / printVectorNh / printVectorPaths $vector                                               #                   
+#               For getting all the elements in the vector , specify the vector pointer                                 #
+#                                                                                                                       #
+#       - cmd : printVertex                                                                                             #
+#               For getting fields in the ospf_vertex like nh, lsa and distance                                         #
+#                                                                                                                       #
+#       - cmd : show_area_lsdb $top                                                                                     #
+#               Prints area "0" LSDB  all LSAs                                                                          #
+#                                                                                                                       #
+#       - cmd : show_ls_table $ls_table                                                                                 #
+#               Prints whole tree of LSA's table                                                                        #
+#                                                                                                                       #
+#       - cmd : print_mem                                                                                               #
+#               prints memory statistics                                                                                #
+#                                                                                                                       #
+#       - cmd : getAllThreads zg->master                                                                                #
+#               prints list of threads of ospf                                                                          #
+#                                                                                                                       #
+#########################################################################################################################
+
+define getAllThreads
+    dont-repeat
+    set print pretty
+    set pagination off
+
+    set $tm = (struct thread_master *)($arg0)
+    p *$tm
+
+    printf "-----thread_list queue_high--------\n"
+    set $sll = $tm->queue_high->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list queue_middle--------\n"
+    set $sll = $tm->queue_middle->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list queue_low--------\n"
+    set $sll = $tm->queue_low->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list timer[0]--------\n"
+    set $sll = $tm->timer[0]->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list timer[1]--------\n"
+    set $sll = $tm->timer[1]->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list timer[2]--------\n"
+    set $sll = $tm->timer[2]->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list timer[3]--------\n"
+    set $sll = $tm->timer[3]->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list read_pend--------\n"
+    set $sll = $tm->read_pend->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list read_high--------\n"
+    set $sll = $tm->read_high->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list read--------\n"
+    set $sll = $tm->read->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list write_high--------\n"
+    set $sll = $tm->write_high->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list write--------\n"
+    set $sll = $tm->write->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list event--------\n"
+    set $sll = $tm->event->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list event_low--------\n"
+    set $sll = $tm->event_low->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+    printf "-----thread_list unuse--------\n"
+    set $sll = $tm->unuse->head
+    while (($sll != 0))
+        p $sll->func
+        set $temp = $sll->next
+        set $sll = $temp
+    end
+
+
+end
+
+define _push
+    set logging off
+    set logging file _stack.gdb
+    set logging on
+    printf "set $$arg0 = (struct $arg2 *)0x%x\n", (void *)$arg1
+    set logging off
+    set logging file gdb.txt
+    set logging on
+end
+
+define _pop
+    shell tail -n 1 _stack.gdb > _stack2.gdb
+    source _stack2.gdb
+    shell sed -i '$d' _stack.gdb
+end
+
+define printLsa
+    set $lsa_node = (struct ospf_lsa *)($arg0)
+#    p $lsa_node->data
+    printf "LSA Details: \n"
+    printf "-------------\n"
+    printf "LS ID: "
+    print_ip $lsa_node->data->id
+    printf "Advertizing router:"
+    print_ip $lsa_node->data->adv_router
+    printf "Age: %d, type:%d\n", $lsa_node->data->ls_age, $lsa_node->data->type
+end
+
+define traverseTreeLsa
+    set $node = (struct ls_node *)$arg0
+
+    if ($node)
+        if ($node->p)
+#            p *$node
+            if ($node->vinfo[0])
+                printLsa ($node->vinfo[0])
+#                p *(struct ospf_lsa *)($node->vinfo[0])
+                set $num_lsa = $num_lsa + 1
+            end
+        end
+        _push node $node ls_node
+#        printf "L"
+        traverseTreeLsa $node->link[0]
+        _pop
+#        printf "R"
+        traverseTreeLsa $node->link[1]
+    end
+end
+
+define show_ls_table
+    dont-repeat
+    set $num_lsa = 0
+    set $ls_table = (struct ls_table *)($arg0)
+    set $node = (struct ls_node *)$ls_table->top
+
+    shell touch _stack.gdb _stack2.gdb
+    traverseTreeLsa $node
+    shell rm _stack.gdb _stack2.gdb
+    printf "Number of LSAs: %d\n", $num_lsa
+end
+
+define show_area_lsdb
+    dont-repeat
+    set print pretty
+    set pagination off
+
+    printf "Argument should be top pointer\n"
+
+    printf "-------struct ospf *top ---------\n"
+    set $top = (struct ospf *)($arg0) 
+#    p *$top
+
+    set $area = (struct ospf_area *)$top->area_table->top->vinfo[0]
+    printf "-------Area 0 -- struct ospf_area: 0x%x\n", $area
+#    p *$area
+
+    set $type1 = ((struct ospf_lsdb *)$area->lsdb)->type[1]->db
+    printf "----type 1 LSAs ------ls_table: 0x%x\n", $type1
+    p *$type1
+
+    set $type2 = ((struct ospf_lsdb *)$area->lsdb)->type[2]->db
+    printf "----type 2 LSAs ------ls_table: 0x%x\n", $type2
+    p *$type2
+
+    set $type3 = ((struct ospf_lsdb *)$area->lsdb)->type[3]->db
+    printf "----type 3 LSAs ------ls_table: 0x%x\n", $type3
+    p *$type3
+
+    set $type4 = ((struct ospf_lsdb *)$area->lsdb)->type[4]->db
+    printf "----type 4 LSAs ------ls_table: 0x%x\n", $type4
+    p *$type4
+
+    set $type5 = ((struct ospf_lsdb *)$area->lsdb)->type[5]->db
+    printf "----type 5 LSAs ------ls_table: 0x%x\n", $type5
+    p *$type5
+
+end
+
+define print_ip
+    dont-repeat
+    set $ip = (char[])($arg0)
+    printf "%d.%d.%d.%d\n", $ip[0], $ip[1], $ip[2], $ip[3]
+end
+    
+# print ospf memory usage from the core file
+#
+define print_mem
+    dont-repeat
+    set $temp = 0
+    set $temp = (*((unsigned long long*)g_memstat_data -1)& ~3) - sizeof(unsigned long long)*2
+    printf "Memory used by memstat:%d Max type:%d\n", $temp, $temp/8
+
+    set $total = 0
+    set $i = 0
+    printf "Index  Num Allocs   Allocation size\n"
+    while ($i < 942)
+        set $i = $i + 1
+        if (g_memstat_data[$i].num_allocs > 0)
+            printf "%4d  %12d  %12d\n", $i, g_memstat_data[$i].num_allocs, g_memstat_data[$i].alloc_size
+        set $total = $total + g_memstat_data[$i].alloc_size
+        end
+    end
+    printf "Total heap memory used by ospf:%d\n", $total
+end
+
+
+define printVectorLSA
+    printf "Print Vector LSA: 0x%x\n", $arg0
+    if ($arg0 != 0)
+        set $vector = ($arg0)
+        p *$vector
+        set $i = 0
+        while ($i < $vector->max)
+            if ($vector->index[$i] != 0)
+                printLsa $vector->index[$i]
+            end
+            set $i = $i + 1
+        end
+    end
+end
+
+define printNh
+    set $nh = (struct ospf_nexthop *)($arg0)
+    printf "NextHop Details : \n"
+    printf "-------------------\n"
+    printf "Nexthop Interface ID: "
+    print_ip $nh->if_id
+    printf "Neighbor Interface ID: "
+    print_ip $nh->nbr_id
+end
+
+define printVectorNh
+    printf "Print Vector Nexhop: 0x%x\n", $arg0
+    if ($arg0 != 0)
+        set $vector = ($arg0)
+        p *$vector
+        set $i = 0
+        while ($i < $vector->max)
+            if ($vector->index[$i] != 0)
+                printNh $vector->index[$i]
+            end
+            set $i = $i + 1
+        end
+    end
+end
+
+define printPath
+    printf "\n Print Path Pointer: 0x%x\n", $arg0
+    printf "\n In current path \n"
+    p *(struct ospf_path *)($arg0)
+    if ($arg0 != 0) 
+        set $currentPath = (struct ospf_path *)($arg0)
+        
+        printf "\n==>List of NextHops for given path \n"
+        printVectorNh $currentPath->nexthops
+
+        printf "\n==>LSA Vector for given path\n"
+        printVectorLSA $currentPath->lsa_vec
+    end
+end
+
+
+define printVectorPaths
+    printf "Print Vector Paths: 0x%x\n", $arg0
+    if ($arg0 != 0)
+        set $vector = ($arg0)
+        p *$vector
+        set $i = 0
+        while ($i < $vector->max)
+            if ($vector->index[$i] != 0)
+                printf "*****Path %d********** \n", ($i+1)
+                printPath $vector->index[$i]
+            end
+            set $i = $i + 1
+        end
+    end
+end
+
+define printRoute
+    printf "\n-----------------------------Route %d --------------------------------------------\n", ($num_routes+1) 
+    printf "Route's Pointer \n"
+    p $arg0
+    set $route_node = (struct ospf_route *)($arg0)
+    printf "OSPF Route IP prefix: "
+    print_ip $route_node->rn->p->prefix
+    printf " Length of Prefix: %d \n", $route_node->rn->p->prefixlen
+    printf "Selected Path:\n"
+    printf "===============\n"
+    printf "Print Vector Paths: 0x%x\n", $route_node->selected
+    p *$route_node->selected
+    printf "\n==>List of NextHops - Selected\n"
+    printVectorNh $route_node->selected->nexthops
+
+    printf "\n==>LSA Vector - Selected\n"
+    printVectorLSA  $route_node->selected->lsa_vec
+    printf "\n**End of Selected Path** \n" 
+
+    printf "\nVector of Paths  \n"
+    printf "====================\n"
+    printVectorPaths $route_node->paths
+    printf "\n**End of Paths** \n" 
+
+    printf "\nVector of News (candidate paths) \n"
+    printf "===================================\n"
+    printVectorPaths $route_node->news
+    printf "\n**End of News** \n" 
+
+end
+
+define traverseTreeRoute
+    set $node = (struct ls_node *)$arg0
+
+    if ($node)
+        if ($node->p)
+#            p *$node
+            if ($node->vinfo[0])
+                printRoute ($node->vinfo[0])
+#                p *(struct ospf_lsa *)($node->vinfo[0])
+                set $num_routes = $num_routes + 1
+            end
+        end
+        _push node $node ls_node
+#        printf "L"
+        traverseTreeRoute $node->link[0]
+        _pop
+#        printf "R"
+        traverseTreeRoute $node->link[1]
+    end
+end
+
+define show_rt_network
+    dont-repeat
+#    set print pretty
+    set pagination off
+    set $num_routes = 0
+    set $rt_network = (struct ls_table *)($arg0->rt_network)
+    set $node = (struct ls_node *)$rt_network->top
+
+    shell touch _stack.gdb _stack2.gdb
+    traverseTreeRoute $node
+    shell rm _stack.gdb _stack2.gdb
+    printf "Number of Routes: %d\n", $num_routes
+end
+
+# ---------------- OSPF Vertex ----------------------------------------------#
+
+define printVertex
+    printf "\n Print Vertex Pointer: 0x%x\n", $arg0
+    p *(struct ospf_vertex *)($arg0)
+    if ($arg0 != 0) 
+        set $currentVertex = (struct ospf_vertex *)($arg0)
+        printf "\n Distance from root to this vertex: %d ", $currentVertex->distance
+        printf "\n ==> Origin LSA of the Vertex \n "
+        printLsa $currentVertex->lsa
+            
+        printf "\n==>List of NextHops for given path \n"
+        printVectorNh $currentVertex->nexthops
+    end
+end
+#----------------------------------------------------------------------------#
+# /* vim:set ft=gdb ts=4 sw=4 expandtab tw=79: */
+#-----------------Experiments------------------------------------------------#
+define msp
+    dont-repeat
+    printf "\n Starting of the script......."
+    printLsa lsa
+    printNh nh
+    continue
+end
+
+define r
+    printLsa lsa
+    c
+end
+
+define n
+    printNh nh
+    c
+end
+
+define pp
+    printPath path
+    c
+end
+
+define ss
+    printNh nh_new
+    print nh_new->oi->area->area_id.s_addr
+    c
+end
+define nn
+    printNh nh
+    print nh->oi->area->area_id.s_addr
+    c
+end
+#----------------------------------------------------------------------------#
